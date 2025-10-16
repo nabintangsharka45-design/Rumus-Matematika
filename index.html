@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kalkulator Rumus Matematika (SD / SMP / SMA/SMK)</title>
+<style>
+  :root{
+    --bg:#0b1020; --card:#0f1724; --accent:#5eead4; --muted:#9aa4b2; --glass: rgba(255,255,255,0.03);
+  }
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    background:linear-gradient(180deg,#071023 0%, #071826 100%); color:#e6eef6;
+    min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:32px;
+  }
+  .app{ width:100%; max-width:980px; }
+  header{ display:flex; gap:16px; align-items:center; margin-bottom:18px; }
+  h1{ margin:0; font-size:1.4rem; color:var(--accent); }
+  p.lead{ margin:0; color:var(--muted); font-size:0.95rem; }
+  .card{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(94,234,212,0.08); padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(2,6,23,0.6);
+  }
+  .grid{ display:grid; grid-template-columns: 260px 1fr; gap:16px; align-items:start; }
+  nav.side{ padding:12px; border-radius:10px; background:var(--glass); }
+  nav h3{ margin:0 0 10px 0; font-size:0.95rem; color:var(--accent); }
+  .levels button, .topics button { display:block; width:100%; margin-bottom:8px; text-align:left;
+    background:transparent; border:1px solid rgba(255,255,255,0.03); color:inherit; padding:8px 10px; border-radius:8px; cursor:pointer;
+  }
+  .levels button.active, .topics button.active{ background:linear-gradient(90deg, rgba(94,234,212,0.06), rgba(94,234,212,0.03));
+    border-color: rgba(94,234,212,0.18); box-shadow:0 4px 12px rgba(94,234,212,0.04);
+  }
+  main .panel{ padding:14px; gap:12px; display:flex; flex-direction:column; }
+  .inputs{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; margin-top:6px; }
+  label{ font-size:0.86rem; color:var(--muted); display:block; margin-bottom:6px; }
+  input[type="number"], input[type="text"], input[type="date"], select{
+    width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04);
+    background:transparent; color:inherit; outline:none;
+  }
+  .row{ display:flex; gap:10px; align-items:center; }
+  .btn{ background:linear-gradient(90deg,var(--accent),#7dd3fc); color:#052b2a; border:none; padding:10px 14px; border-radius:10px;
+    cursor:pointer; font-weight:600; }
+  .resultBox{ margin-top:12px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03);
+    color:#e6fff7;
+  }
+  pre.steps{ background: rgba(0,0,0,0.25); padding:10px; border-radius:8px; overflow:auto; color:#dbeafe; font-size:0.92rem; }
+  footer{ margin-top:16px; color:var(--muted); font-size:0.85rem; text-align:center; }
+  @media(max-width:820px){ .grid{ grid-template-columns: 1fr; } nav.side{ order:2 } main{ order:1 } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>RumusMate — Kalkulator Rumus Matematika</h1>
+      <p class="lead">SD • SMP • SMA/SMK — pilih tingkat & topik, masukkan nilai, lalu hitung. Siap untuk GitHub Pages.</p>
+    </div>
+  </header>
+
+  <div class="grid card">
+    <nav class="side" id="sidebar">
+      <h3>Pilih Tingkat</h3>
+      <div class="levels">
+        <button data-level="sd" class="active">SD</button>
+        <button data-level="smp">SMP</button>
+        <button data-level="sma">SMA / SMK</button>
+      </div>
+
+      <h3 style="margin-top:12px">Topik</h3>
+      <div class="topics" id="topicsList">
+        <!-- topics populated by JS -->
+      </div>
+    </nav>
+
+    <main>
+      <section class="panel card" id="panelMain">
+        <h2 id="panelTitle">SD — Luas Persegi</h2>
+        <div id="panelDesc" style="color:var(--muted); font-size:0.95rem">Pilih topik untuk melihat input dan rumus.</div>
+
+        <div id="formArea" style="margin-top:12px">
+          <!-- dynamic form inputs -->
+        </div>
+
+        <div style="margin-top:10px">
+          <button class="btn" id="btnCalc">Hitung</button>
+          <button class="btn" id="btnClear" style="background:transparent; color:var(--accent); border:1px solid rgba(94,234,212,0.08); margin-left:8px">Bersihkan</button>
+        </div>
+
+        <div id="result" class="resultBox" style="display:none">
+          <h3>Hasil</h3>
+          <div id="resultValue" style="font-size:1.25rem; font-weight:700; color:var(--accent)"></div>
+          <div style="margin-top:8px">
+            <div style="color:var(--muted); font-weight:600">Langkah Perhitungan:</div>
+            <pre class="steps" id="resultSteps"></pre>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    Tip: ini versi dasar. Mau kubuatkan fitur simpan riwayat, grafik, atau export PDF? Balas saja :)
+  </footer>
+</div>
+
+<script>
+/* ---------- Data topik per tingkat ---------- */
+const topics = {
+  sd: [
+    { id:'square_area', title:'Luas Persegi', desc:'L = s × s', fields:[ {k:'s', label:'Sisi (s)', type:'number'} ], calc: (f)=>({value: (f.s*f.s), steps: `L = s × s\nL = ${f.s} × ${f.s}\nL = ${f.s*f.s}`}) },
+    { id:'rect_area', title:'Luas Persegi Panjang', desc:'L = p × l', fields:[ {k:'p', label:'Panjang (p)', type:'number'}, {k:'l', label:'Lebar (l)', type:'number'} ],
+      calc: (f)=>({value: (f.p*f.l), steps: `L = p × l\nL = ${f.p} × ${f.l}\nL = ${f.p*f.l}`}) },
+    { id:'triangle_area', title:'Luas Segitiga', desc:'L = 0.5 × a × t', fields:[ {k:'a', label:'Alas (a)', type:'number'}, {k:'t', label:'Tinggi (t)', type:'number'} ],
+      calc:(f)=>({value: (0.5*f.a*f.t), steps: `L = 1/2 × a × t\nL = 0.5 × ${f.a} × ${f.t}\nL = ${(0.5*f.a*f.t)}`}) },
+    { id:'perimeter', title:'Keliling (Persegi Panjang)', desc:'K = 2(p + l)', fields:[ {k:'p', label:'Panjang (p)', type:'number'}, {k:'l', label:'Lebar (l)', type:'number'} ],
+      calc:(f)=>({value: (2*(f.p+f.l)), steps: `K = 2 × (p + l)\nK = 2 × (${f.p} + ${f.l})\nK = ${2*(f.p+f.l)}`}) },
+    { id:'cube_vol', title:'Volume Kubus', desc:'V = s³', fields:[ {k:'s', label:'Sisi (s)', type:'number'} ],
+      calc:(f)=>({value: Math.pow(f.s,3), steps:`V = s³\nV = ${f.s}³\nV = ${Math.pow(f.s,3)}`}) }
+  ],
+  smp: [
+    { id:'pythagoras', title:'Pythagoras (c^2 = a^2 + b^2)', desc:'Cari sisi miring atau sisi lain', fields:[ {k:'a', label:'Sisi a (kosongkan jika ingin cari a)', type:'number', optional:true},
+                                                                                      {k:'b', label:'Sisi b (kosongkan jika ingin cari b)', type:'number', optional:true},
+                                                                                      {k:'c', label:'Sisi c (hipotenusa) (kosongkan jika ingin cari c)', type:'number', optional:true} ],
+      calc:(f)=>{
+        // Determine which is missing
+        const a = isFinite(f.a)?Number(f.a):null;
+        const b = isFinite(f.b)?Number(f.b):null;
+        const c = isFinite(f.c)?Number(f.c):null;
+        if (c==null && a!=null && b!=null){
+          const cval = Math.sqrt(a*a + b*b);
+          return {value:cval, steps:`c = √(a² + b²)\nc = √(${a}² + ${b}²)\nc = ${cval.toFixed(6)}`};
+        } else if (a==null && b!=null && c!=null){
+          const aval = Math.sqrt(c*c - b*b);
+          return {value:aval, steps:`a = √(c² - b²)\na = √(${c}² - ${b}²)\na = ${aval.toFixed(6)}`};
+        } else if (b==null && a!=null && c!=null){
+          const bval = Math.sqrt(c*c - a*a);
+          return {value:bval, steps:`b = √(c² - a²)\nb = √(${c}² - ${a}²)\nb = ${bval.toFixed(6)}`};
+        } else {
+          return {error:'Masukkan dua nilai yang diketahui; kosongkan nilai yang ingin dicari.'};
+        }
+      } },
+    { id:'circle_area', title:'Luas Lingkaran', desc:'L = πr²', fields:[ {k:'r', label:'Jari-jari (r)', type:'number'} ],
+      calc:(f)=>({value: (Math.PI * f.r * f.r), steps:`L = π r²\nL = π × ${f.r}²\nL = ${ (Math.PI * f.r * f.r).toFixed(6) } (gunakan π ≈ ${Math.PI.toFixed(6)})` }) },
+    { id:'trapezoid_area', title:'Luas Trapesium', desc:'L = ((a+b)/2) × t', fields:[ {k:'a', label:'Sisi sejajar a', type:'number'}, {k:'b', label:'Sisi sejajar b', type:'number'}, {k:'t', label:'Tinggi (t)', type:'number'} ],
+      calc:(f)=>({value: (( (f.a+f.b)/2 )*f.t), steps:`L = ((a+b)/2) × t\nL = ((${f.a}+${f.b})/2) × ${f.t}\nL = ${ ( ((f.a+f.b)/2)*f.t ).toFixed(6) }` }) },
+    { id:'cylinder_vol', title:'Volume Tabung', desc:'V = π r² h', fields:[ {k:'r', label:'Jari-jari (r)', type:'number'}, {k:'h', label:'Tinggi (h)', type:'number'} ],
+      calc:(f)=>({value:(Math.PI * f.r * f.r * f.h), steps:`V = π r² h\nV = π × ${f.r}² × ${f.h}\nV = ${ (Math.PI * f.r * f.r * f.h).toFixed(6) }` }) },
+    { id:'percent', title:'Hitung Persentase', desc:'Konversi nilai ke persen', fields:[ {k:'part', label:'Bagian (part)', type:'number'}, {k:'total', label:'Total (total)', type:'number'} ],
+      calc:(f)=>{ if(f.total==0) return {error:'Total tidak boleh 0.'}; return {value: (f.part / f.total * 100), steps:`persen = (part / total) × 100\npersen = (${f.part} / ${f.total}) × 100\npersen = ${(f.part / f.total * 100).toFixed(6)}%` } } }
+  ],
+  sma: [
+    { id:'linear_eq', title:'Persamaan Linear (ax + b = 0)', desc:'Cari x dari ax + b = 0', fields:[ {k:'a', label:'a', type:'number'}, {k:'b', label:'b', type:'number'} ],
+      calc:(f)=>{ if(f.a==0) return {error:'a tidak boleh 0 (bukan persamaan linear normal).'}; const x = -f.b / f.a; return {value:x, steps:`ax + b = 0 ⇒ x = -b / a\nx = -(${f.b}) / ${f.a}\nx = ${x}`}; } },
+    { id:'quadratic', title:'Persamaan Kuadrat (ax² + bx + c = 0)', desc:'Rumus kuadrat / diskriminan', fields:[ {k:'a', label:'a', type:'number'}, {k:'b', label:'b', type:'number'}, {k:'c', label:'c', type:'number'} ],
+      calc:(f)=>{
+        const a=f.a, b=f.b, c=f.c;
+        if(a==0) return {error:'a tidak boleh 0 untuk persamaan kuadrat.'};
+        const D = b*b - 4*a*c;
+        if(D < 0) return {value: null, steps:`Diskriminan D = ${D} < 0 → Akar kompleks.\nD = b² - 4ac = ${b}² - 4×${a}×${c} = ${D}`};
+        const x1 = (-b + Math.sqrt(D)) / (2*a);
+        const x2 = (-b - Math.sqrt(D)) / (2*a);
+        return {value:[x1,x2], steps:`D = b² - 4ac = ${b}² - 4×${a}×${c} = ${D}\nx = (-b ± √D) / (2a)\nx1 = ${x1}\nx2 = ${x2}`};
+      } },
+    { id:'arith_seq', title:'Barisan Aritmetika (Un & Sn)', desc:'Un = a1 + (n-1)d; Sn = n/2 × (a1 + an)', fields:[ {k:'a1', label:'Un pertama a1', type:'number'}, {k:'d', label:'beda (d)', type:'number'}, {k:'n', label:'n (indeks yang dicari)', type:'number'} ],
+      calc:(f)=>{ const Un = Number(f.a1) + (Number(f.n)-1)*Number(f.d); const an = Number(Un); const Sn = (Number(f.n)/2)*(Number(f.a1)+an); return {value:{Un:Un, Sn:Sn}, steps:`Un = a1 + (n-1)d\nUn = ${f.a1} + (${f.n}-1)×${f.d} = ${Un}\nSn = n/2 × (a1 + an)\nSn = ${f.n}/2 × (${f.a1} + ${Un}) = ${Sn}` } } },
+    { id:'slope', title:'Gradien Garis (m) antara dua titik', desc:'m = (y2 - y1)/(x2 - x1)', fields:[ {k:'x1', label:'x1', type:'number'}, {k:'y1', label:'y1', type:'number'}, {k:'x2', label:'x2', type:'number'}, {k:'y2', label:'y2', type:'number'} ],
+      calc:(f)=>{ if(Number(f.x2)==Number(f.x1)) return {error:'x2 = x1 → gradien tak hingga (garis tegak).'}; const m = (Number(f.y2)-Number(f.y1)) / (Number(f.x2)-Number(f.x1)); return {value:m, steps:`m = (y2 - y1) / (x2 - x1)\nm = (${f.y2} - ${f.y1}) / (${f.x2} - ${f.x1}) = ${m}` } } }
+  ]
+};
+
+/* ---------- UI & Logic ---------- */
+let currentLevel = 'sd';
+let currentTopic = null;
+
+const topicsListEl = document.getElementById('topicsList');
+const panelTitle = document.getElementById('panelTitle');
+const panelDesc = document.getElementById('panelDesc');
+const formArea = document.getElementById('formArea');
+const resultBox = document.getElementById('result');
+const resultValue = document.getElementById('resultValue');
+const resultSteps = document.getElementById('resultSteps');
+
+function renderTopics(){
+  topicsListEl.innerHTML = '';
+  topics[currentLevel].forEach(t=>{
+    const btn = document.createElement('button');
+    btn.textContent = t.title;
+    btn.dataset.id = t.id;
+    btn.onclick = ()=>{ selectTopic(t.id); Array.from(document.querySelectorAll('.topics button')).forEach(b=>b.classList.remove('active')); btn.classList.add('active'); };
+    if(!currentTopic) { currentTopic = topics[currentLevel][0].id; btn.classList.add('active'); }
+    topicsListEl.appendChild(btn);
+  });
+  selectTopic(currentTopic);
+}
+
+function selectTopic(id){
+  currentTopic = id;
+  const t = topics[currentLevel].find(x=>x.id===id);
+  panelTitle.textContent = `${currentLevel.toUpperCase()} — ${t.title}`;
+  panelDesc.textContent = t.desc;
+  renderForm(t);
+  resultBox.style.display='none';
+}
+
+function renderForm(topic){
+  formArea.innerHTML = '';
+  // create inputs based on topic.fields
+  const container = document.createElement('div');
+  container.className = 'inputs';
+  topic.fields.forEach(f=>{
+    const wrap = document.createElement('div');
+    const label = document.createElement('label');
+    label.textContent = f.label + (f.optional ? ' (opsional)' : '');
+    const input = document.createElement('input');
+    input.type = f.type || 'number';
+    input.id = 'fld_'+f.k;
+    input.placeholder = f.type==='number' ? 'Masukkan angka' : '';
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    container.appendChild(wrap);
+  });
+  formArea.appendChild(container);
+}
+
+document.querySelectorAll('.levels button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.levels button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLevel = btn.dataset.level;
+    currentTopic = topics[currentLevel][0].id;
+    renderTopics();
+  });
+});
+
+document.getElementById('btnCalc').addEventListener('click', ()=>{
+  calculateCurrent();
+});
+document.getElementById('btnClear').addEventListener('click', ()=>{ // clear inputs
+  document.querySelectorAll('#formArea input').forEach(inp=>inp.value='');
+  resultBox.style.display='none';
+});
+
+function getFields(topic){
+  const data = {};
+  topic.fields.forEach(f=>{
+    const inp = document.getElementById('fld_'+f.k);
+    const val = inp ? inp.value.trim() : '';
+    if(f.type==='number'){
+      // treat empty as NaN for optional fields
+      data[f.k] = val === '' ? NaN : Number(val);
+    } else {
+      data[f.k] = val;
+    }
+  });
+  return data;
+}
+
+function calculateCurrent(){
+  const topic = topics[currentLevel].find(x=>x.id===currentTopic);
+  const fields = getFields(topic);
+  // pass fields to topic.calc; handle errors & display
+  try{
+    const out = topic.calc(fields);
+    if(out && out.error){
+      alert(out.error);
+      return;
+    }
+    resultBox.style.display='block';
+    // format output nicely
+    if(Array.isArray(out.value)){
+      resultValue.innerHTML = out.value.map((v,i)=>`x${i+1} = ${formatNumber(v)}`).join('<br>');
+    } else if(typeof out.value === 'object' && out.value !== null){
+      // example Un & Sn
+      let html=''; for(const k in out.value) html += `${k}: ${formatNumber(out.value[k])}<br>`;
+      resultValue.innerHTML = html;
+    } else if(out.value === null){
+      resultValue.innerHTML = 'Tidak ada akar real (akar kompleks)';
+    } else {
+      resultValue.innerHTML = formatNumber(out.value);
+    }
+    resultSteps.textContent = out.steps || 'Langkah tidak tersedia.';
+  }catch(e){
+    alert('Terjadi kesalahan: ' + e.message);
+  }
+}
+
+function formatNumber(n){
+  if(n===null) return 'null';
+  if(typeof n !== 'number' || isNaN(n)) return String(n);
+  // simple formatting: if integer, show as integer; else show upto 6 decimals trimmed
+  if(Number.isInteger(n)) return String(n);
+  return Number(n.toFixed(6)).toString();
+}
+
+/* ---------- initial render ---------- */
+renderTopics();
+</script>
+</body>
+</html>
